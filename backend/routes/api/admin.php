@@ -9,10 +9,14 @@ Route::prefix('admin')->group(function () {
 
     // ログイン後にのみアクセスできるルート
     Route::middleware('auth:admin_api')->group(function () {
+
         //　自分の情報を取得
         Route::get('me', [AuthController::class, 'me']);
 
         // ログアウト
         Route::post('logout', [AuthController::class, 'logout']);
+
+        // 2FA有効化
+        Route::post('2fa/enable', [AuthController::class, 'enable2FA']);
     });
 });

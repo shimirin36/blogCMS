@@ -4,34 +4,68 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\LoginRequest;
-use App\Models\Admin;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Http\Request;
 use Tymon\JWTAuth\Facades\JWTAuth;
-use PragmaRX\Google2FALaravel\Support\Authenticator;
+use PragmaRX\Google2FA\Google2FA;
 
 class AuthController extends Controller
 {
     public function login(LoginRequest $request)
     {
-        $admin = Admin::where('email', $request->email)->first();
+        $credentials = $request->only('email', 'password');
 
-        if (!$admin || !Hash::check($request->password, $admin->password)) {
-            return response()->json(['message' => 'メールアドレスまたはパスワードが違います。'], 401);
+        if (! $token = auth('admin_api')->attempt($credentials)) {
+            return response()->json(['error' => 'Invalid credentials'], 401);
         }
 
-        // 2段階認証チェック
-        if (!empty($admin->google2fa_secret)) {
-            $google2fa = app(Authenticator::class)->boot($request);
-            if (!$google2fa->verifyGoogle2FA($admin->google2fa_secret, $request->otp)) {
-                return response()->json(['message' => 'ワンタイムコードが無効です。'], 401);
-            }
+        $user = auth('admin_api')->user();
+
+        // 2FA未設定ならログイン不可
+        if (empty($user->google2fa_secret)) {
+            // 現在ログイン中の管理者トークンを無効化
+            auth('admin_api')->logout();
+            return response()->json(['error' => '2FA not enabled. Please enable it first.'], 403);
         }
 
-        $token = JWTAuth::fromUser($admin);
+        // 2FAコード必須
+        if (! $request->filled('code')) {
+            auth('admin_api')->logout();
+            return response()->json(['error' => '2FA code required'], 403);
+        }
+
+        $google2fa = new \PragmaRX\Google2FA\Google2FA();
+        if (! $google2fa->verifyKey($user->google2fa_secret, $request->input('code'))) {
+            auth('admin_api')->logout();
+            return response()->json(['error' => 'Invalid 2FA code'], 401);
+        }
 
         return response()->json([
             'token' => $token,
-            'admin' => $admin,
+            'admin' => $user,
+        ]);
+    }
+
+    public function enable2FA(Request $request)
+    {
+        $user = auth('admin_api')->user();
+
+        $google2fa = new \PragmaRX\Google2FA\Google2FA();
+
+        $secret = $google2fa->generateSecretKey();
+
+        $user->google2fa_secret = $secret;
+        $user->save();
+
+        $qrUrl = $google2fa->getQRCodeUrl(
+            config('app.name'),
+            $user->email,
+            $secret
+        );
+
+        return response()->json([
+            'message' => '2FA enabled successfully',
+            'secret' => $secret,
+            'qr_url' => $qrUrl,
         ]);
     }
 
