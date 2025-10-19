@@ -9,6 +9,9 @@ class Admin extends Authenticatable implements JWTSubject
 {
     protected $fillable = ['name', 'email', 'password', 'google2fa_secret'];
     protected $hidden = ['password', 'google2fa_secret'];
+    protected $casts = [
+        'google2fa_secret' => 'string',
+    ];
 
     public function getJWTIdentifier()
     {
