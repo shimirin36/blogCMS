@@ -112,4 +112,18 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    'guards' => [
+        'admin_api' => [
+            'driver' => 'jwt',
+            'provider' => 'admins',
+        ],
+    ],
+
+    'providers' => [
+        'admins' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Admin::class,
+        ],
+    ],
+
 ];
