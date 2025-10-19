@@ -5,7 +5,7 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   runtimeConfig: {
     public: {
-      apiBase: 'http://laravel.test/api'
+      apiBase: 'http://laravel/api'
     }
   }
 })
