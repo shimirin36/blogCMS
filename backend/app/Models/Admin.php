@@ -11,6 +11,11 @@ class Admin extends Authenticatable implements JWTSubject
     protected $hidden = ['password', 'google2fa_secret'];
     protected $casts = [
         'google2fa_secret' => 'string',
+        'temporary_lock_until' => 'datetime',
+        'is_suspended' => 'boolean',
+        'failed_login_count' => 'integer',
+        'twofa_failed_count' => 'integer',
+        'total_failed_count' => 'integer',
     ];
 
     public function getJWTIdentifier()

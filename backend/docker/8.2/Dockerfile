@@ -9,6 +9,9 @@ RUN apt-get update && apt-get install -y \
 # Composer インストール
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
+# PHP Redis 拡張をインストール（Laravelの phpredis クライアント用）
+RUN pecl install redis && docker-php-ext-enable redis
+
 # Xdebug インストールと設定
 RUN pecl install xdebug && docker-php-ext-enable xdebug && \
     echo "zend_extension=xdebug" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini && \
